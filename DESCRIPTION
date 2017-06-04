@@ -1,11 +1,23 @@
 Package: smarketcrawlR
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Crawling stock market at the platform ariva.de
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
+Depends:
+    R (>= 3.3.0),
+    data.table
+Imports:
+    httr,
+    xml2,
+    XML,
+    lubridate,
+    dplyr,
+    data.table,
+    ggplot2
+Author: Timo Wagner
+Maintainer: Timo Wagner <wagnertimo@gmx.de>
 Description: More about what it does (maybe more than one line)
     Use four spaces when indenting paragraphs within the Description.
-License: What license is it under?
+License: MIT License
 Encoding: UTF-8
 LazyData: true
+RoxygenNote: 6.0.1
