@@ -3,16 +3,16 @@ Type: Package
 Title: Crawling stock market at the platform ariva.de
 Version: 0.1.0
 Depends:
-    R (>= 3.3.0),
-    data.table
+    R (>= 3.3.0)
 Imports:
     httr,
     xml2,
     XML,
     lubridate,
     dplyr,
-    data.table,
-    ggplot2
+    ggplot2,
+    stringr,
+    logging
 Author: Timo Wagner
 Maintainer: Timo Wagner <wagnertimo@gmx.de>
 Description: More about what it does (maybe more than one line)

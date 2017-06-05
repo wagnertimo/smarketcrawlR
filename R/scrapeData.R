@@ -5,77 +5,401 @@
 #   Check Package:             'Cmd + Shift + E'
 #   Test Package:              'Cmd + Shift + T'
 
-
-
-
-#' @title getOHLC
+#' @title setLogging
 #'
-#' @description This method crawls through the ariva.de financal website and grabs price data out of the html tables.
+#' @description This function sets a global options variable called "logging" to TRUE OR FALSE. By default it is FALSE, so no logging is displayed.
+#'
+#' @param logger - A boolean variable. TRUE for printing out the logging outputs in the console.
+#'
+#'
+#' @export
+#'
+setLogging <- function(logger) {
+  options("logging" = logger)
+  ifelse(logger == TRUE, print("Outputs/logs will be displayed!"), print("No console outputs/logs will be displayed!"))
+}
+
+
+#' @title getDailyOHLC
+#'
+#' @description This method crawls through the ariva.de website and grabs the daily price data out of the html tables.
 #' You can get OHLC data from specific dates for specific stocks (ISIN required).
 #' Either on putting the different stocks/isins and different dates for prices in a data.frame (input_df). This is good to get different prices on different dates and different stocks.
 #' or by delclaring a vector of dates/intervals and stocks/isins. This is good for comparing the prices on different time periods within a stock or with other stocks.
 #' The date must be in the right format (dd.mm.yyyy) as a character. It is not checked if the date is a correct trading day.
 #' It is also not checked if the date intervals are correct.
 #'
-#' The method strictly depends on the website structure of ariva!
+#' Status Quo:
+#' - Only Xetra price data
+#' - price data is cleaned up from stock splits (clean_splits)
+#  - price data is cleaned up (recalculated) from dividends (clean_payout)
+#  - price data is cleaned up (recalculated) from subscription rights (clean_bezug)
 #'
-#' Needs libraries RCurl, XML and stringr
+#' The method strictly depends on the website structure of ariva and GET request of the csv file!
 #'
-#' Ex. 1: dates <- c("25.02.2008","27.02.2008"); isin <- c("DE0007037145","DE0007037145"); input_df <- data.frame(dates,isin); getOHLC(input_df=input_df)
-#' Ex. 2: isin  <- c("DE0007037145","DE0007664039") searchDates  <- c("20.09.2014-22.09.2014","20.08.2014","06.05.2014-16.05.2014"); getOHLC(searchDates=searchDates, isin=isin)
+#' @param searchDates - vector of charachters with different (formats see examples) Date requests: e.g. 20.09.2014-22.09.2014 (normal time period between two dates) // 08.2014 (short for one month) // 2014 (short for one year) // 20.08.2014 (short for one day) // 2013-2014 (time period between two years) // 08.2014-09.2014 (time period between two months)
+#' @param isin - vector of characters with the id number of the stocks (ISIN = International Stock Identification Number)
+#' @param input_df - data.frame with dates(as character in format dd.mm.yyyy, e.g. 21.02.2008 (%d.%m.%Y)) and isin(as character, e.g. DE0007037145(RWE AG)). Column names and order --> dates and isin are restricted!
 #'
-#' @param input_df - data.frame with dates(as character in format dd.mm.yyyy e.g. 21.02.2008 (%d.%m.%Y)) and isin(as character - international stock identification number (e.g. DE0007037145 // RWE AG)
-#'      searchDate = vector of charachters with Date request e.g. 20.09.2014-22.09.2014 // 08.2014 // 2014 // 20.08.2014 // 2013-2014 // 08.2014-09.2014
-#'      isin = vector of the id number of the stocks
+#' @return data.frame : date, isin, open, high, low, close, currency, volume, turnover
 #'
-#' @return data.frame : date,isin,open,high,low,close,currency,volume,turnover
+#' @examples
+#'
+#' # First example for the first search option (input parameter: only input_df)
+#' #' # Build the input parameter data.frame
+#' dates <- c("25.02.2008","27.02.2008")
+#' isin <- c("DE0007037145","DE0007037145")
+#' input_df <- data.frame(dates, isin)
+#'
+#' # Get the prices for RWE AG (DE0007037145) of the 25.02.2008 and 27.02.2008
+#' prices1 <- getDailyOHLC(input_df = input_df)
+#'
+#' # Second example for the second search option (input parameter: searchDates and isin)
+#' # Build the input parameters
+#' isin  <- c("DE0007037145","DE0007664039")
+#' searchDates  <- c("20.09.2014-22.09.2014","20.08.2014","06.05.2014-16.05.2014")
+#'
+#' # Get the prices for RWE AG (DE0007037145) and VW VZ (DE0007664039) for different time periods or dates (see searchDates parameter above)
+#' prices2 <- getDailyOHLC(searchDates=searchDates, isin=isin)
+#'
 #'
 #' @export
 #'
-getOHLC  <- function(searchDates,isin,input_df) {
+getDailyOHLC  <- function(searchDates, isin, input_df) {
 
   ## libraries
-  library(RCurl)
   library(XML)
   library(stringr)
+  library(logging)
+
+  # Setup the logger and handlers
+  basicConfig(level="DEBUG") # parameter level = x, with x = debug(10), info(20), warn(30), critical(40) // setLevel()
+  #nameLogFile <- paste("getDailyOHLC", Sys.time(), ".txt", sep="")
+  #addHandler(writeToFile, file=nameLogFile, level='DEBUG')
 
   df = data.frame()
 
   # calculate the OHLC data with the input data.frame
   if(missing(searchDates) && missing(isin)) {
     df = input_df
-    return(readHTMLPriceTable(df))
+
+    if(getOption("logging")) loginfo("getDailyOHLC - Calculate the OHLC data with the input data.frame")
+
+    t <- getPriceCSV(df)
+
+    if(getOption("logging")) loginfo("getDailyOHLC - DONE")
+    return(t)
   }
 
   # calculate the OHLC data with the searchDates vector and the isin vector
   if(missing(input_df)) {
     returnList <- list()
     idx <- 1
+    if(getOption("logging")) loginfo("getDailyOHLC - Calculate the OHLC data with the searchDates vector and the isin vector")
+
+    # Build the input_df with the individual dates and the isin
     for(i in 1:length(isin)){
       for(j in 1:length(searchDates)) {
 
         dateSeq <- getDateSequence(searchDates[j])
-        df = data.frame(dates = dateSeq, isin = rep(isin[i],length(dateSeq)))
+        returnList[[idx]] = data.frame(dates = dateSeq, isin = rep(isin[i],length(dateSeq)))
 
+        #df = data.frame(dates = dateSeq, isin = rep(isin[i],length(dateSeq)))
         # get the prices data.frame and add to the return list
-        returnList[[idx]]  <- readHTMLPriceTable(df)
+        #returnList[[idx]]  <- readHTMLPriceTable(df)
         idx  <- idx+1
       }
     }
 
     edf <- do.call("rbind", returnList)
-    return(edf[order(edf$isin,edf$date),])
+    t <- getPriceCSV(edf)
+
+    if(getOption("logging")) loginfo("getDailyOHLC - DONE")
+
+    return(t)
+
   }
 }
 
+
+
+getPriceCSV <- function(df){
+
+  library(dplyr)
+  library(httr)
+
+  df$dates <- as.Date(df$dates, "%d.%m.%Y")
+  relDates <- unique(df$dates)
+  df$isin <- as.character(df$isin)
+
+  r <- df %>% arrange(isin, dates)
+  r$isin <- as.factor(r$isin)
+  r <- split(r, r$isin)
+
+
+
+  #
+  # GET REQUEST OF CSV INFO:
+  #
+
+  # GET Link: http://www.ariva.de/quote/historic/historic.csv
+  # Params Link + ?secu=4510&boerse_id=16&clean_split=1&clean_payout=0&clean_bezug=1&min_time=5.6.2016&max_time=5.6.2017&trenner=;&go=Download
+  #
+  # Payload:
+  # secu = 4510 --> THIS NUMBER defines the security --> has to be read out --> XPATH: //input[contains(@name,'secu')]/@value
+  # boerse_id = 6 --> is Xetra
+  # clean_split = 1 --> price data is cleaned up (recalculated) from stock splits
+  # clean_payout = 0 --> price data is cleaned up (recalculated) from dividends
+  # clean_bezug = 1 --> price data is cleaned up (recalculated) from subscription rights
+  # min_time = '5.6.2016'
+  # max_time = '5.6.2017'
+  # trenner = '|' ---> use | as delimiter since , is used for decimal and ; makes stupid errors!!
+  # go = 'Download'
+
+  #
+  # !!! IMPORTANT !!! ---> Date Format: Without leading zeros!!!
+
+  # Return semicolon seperated file with columns: Datum;Erster;Hoch;Tief;Schlusskurs;Stuecke;Volumen
+  # Comma as decimal delimiter
+  # blank as NA
+  # E.g.:
+  #
+  # 2017-06-05;13,279;13,2835;13,247;13,247;;
+  # 2017-06-04;13,287;13,287;13,275;13,279;;
+
+  res <- data.frame()
+  # For every split (= stock) do the csv download request --> later filter for the relevant dates!!
+  for(stock in 1:length(r)){
+
+    # Get the secu variable (= security --> internal stock ID) to specify the GET param for the csv download
+    url <- paste("http://www.ariva.de/", unique(r[[stock]]$isin), "/historische_kurse", sep = "")
+    getResponse <- GET(url, verbose())
+    secu <- xpathSApply(htmlParse(content(getResponse, "text")), "//input[contains(@name,'secu')]/@value")
+
+    # convert date in string with no leading zeros for days and months (notice that in year can be also zeros)
+    min_time = sub(".", "", gsub("\\.0", ".", format(min(r[[stock]]$dates), ".%d.%m.%Y")), " %d  %m %Y") # sub function only replaces the first occurence
+    max_time = sub(".", "", gsub("\\.0", ".", format(max(r[[stock]]$dates), ".%d.%m.%Y")), " %d  %m %Y") # sub function only replaces the first occurence
+
+    # Prepare the downloaded file
+    filename = "temp.csv"
+
+    url = 'http://www.ariva.de/quote/historic/historic.csv'
+    param = paste("?secu=", secu,
+                  "&boerse_id=",6,
+                  "&clean_split=",1,
+                  "&clean_payout=",0,
+                  "&clean_bezug=",1,
+                  "&min_time=",min_time,
+                  "&max_time=",max_time,
+                  "&trenner=","|",
+                  "&go=","Download", sep="")
+    url = paste(url, param, sep = "")
+    # download csv file
+    download.file(url, filename, mode="wb")
+
+    # Read in the downloaded csv file
+    d <- read.csv(filename, header = TRUE, sep = "|", dec = ",", na.strings = c(""))
+    colnames(d) <- c("Date","Open","High","Low","Close","Volume","Turnover")
+    # Formatting
+    d$Date <- as.Date(d$Date)
+    # Format Volume and Turnover
+    d$Volume <- as.numeric(gsub("\\.","",d$Volume))
+    d$Turnover <-as.numeric(gsub("\\.","",d$Turnover))
+    # Add the ISIN column
+    d$ISIN <- unique(r[[stock]]$isin)
+
+    # Re order since latest date is begging
+    d <- arrange(d, Date)
+    # Delete the temporary csv file
+    file.remove(filename)
+
+    res <- rbind(res,d)
+
+  }
+
+  # Filter the relevant dates
+  res <- filter(res, Date %in% relDates)
+
+  return(res)
+
+}
+
+
+
+#' This private helping method processes the request for the dates or date intervals:
+#' e.g 20.09.2014-22.09.2014 // 08.2014 // 2014 // 20.08.2014 // 2013-2014 // 08.2014-09.2014
+#' and builds an array with the daily dates to crawl through ariva
 #'
-#' This private method helps the getOHLC function to read out the price table on ariva website.
+#' Needs lubridate library
+#'
+getDateSequence  <- function(searchDate) {
+
+  library(lubridate)
+  result = c()
+
+  if(getOption("logging")) loginfo("getDateSequence - Process the searchDate array and build the right date sequences")
+
+  # Get the number of dots and dashes to distinguish the date request formats. E.g. if the recent request date is 08.2014 or 20.08.2014 ...
+  dot <- "."
+  dash <- "-"
+  s1 <- gsub(dot,"",searchDate,fixed = TRUE) # Count the dots
+  s2 <- gsub(dash,"",searchDate) # Count the dashes
+  numDots <- as.numeric(nchar(searchDate) - nchar(s1)) # number of dots
+  numDashes <- as.numeric(nchar(searchDate) - nchar(s2)) # number of dashes
+
+  # Case:
+  # dd.mm.yyyy-dd.mm.yyyy
+  if(numDots == 4 && numDashes == 1) {
+    start = strsplit(searchDate,"-")[[1]][1]
+    end = strsplit(searchDate,"-")[[1]][2]
+    start = as.Date(start,"%d.%m.%Y")
+    end = as.Date(end,"%d.%m.%Y")
+    result = format(seq(start,end,by=1), "%d.%m.%Y")
+  }
+  # Case:
+  # mm.yyyy
+  else if(numDots == 1 && numDashes == 0) {
+    start = as.Date(paste("01.",searchDate,sep=""),"%d.%m.%Y")
+    end = as.Date(paste("01.",searchDate,sep=""),"%d.%m.%Y")
+    month(end) = month(end) + 1
+    X <- seq(start,end,by=1)
+    X <- X[1:length(X)-1] # delete last row because it belongs to the other month
+    result = format(X, "%d.%m.%Y")
+  }
+  # Case:
+  # yyyy
+  else if(numDots == 0 && numDashes == 0) {
+    start = as.Date(paste("01.01.",searchDate,sep=""),"%d.%m.%Y")
+    end = as.Date(paste("01.01.",searchDate,sep=""),"%d.%m.%Y")
+    year(end)  <- year(end) + 1
+    X <- seq(start,end,by=1)
+    X <- X[1:length(X)-1] # delete last row because it belongs to the other year
+    result = format(X, "%d.%m.%Y")
+  }
+  # Case:
+  # dd.mm.yyyy
+  else if(numDots == 2 && numDashes == 0) {
+    result = searchDate
+
+  }
+  # Case:
+  # yyyy-yyyy
+  else if(numDots == 0 && numDashes == 1) {
+    start = strsplit(searchDate,"-")[[1]][1]
+    end = strsplit(searchDate,"-")[[1]][2]
+    start = as.Date(paste("01.01.",start,sep=""),"%d.%m.%Y")
+    end = as.Date(paste("01.01.",end,sep=""),"%d.%m.%Y")
+    year(end)  <- year(end) + 1
+    X <- seq(start,end,by=1)
+    X <- X[1:length(X)-1] # delete last row because it belongs to the other year
+    result = format(X, "%d.%m.%Y")
+  }
+  # Case:
+  # mm.yyyy-mm.yyyy
+  else if(numDots == 2 && numDashes == 1) {
+    start = strsplit(searchDate,"-")[[1]][1]
+    end = strsplit(searchDate,"-")[[1]][2]
+    start = as.Date(paste("01.",start,sep=""),"%d.%m.%Y")
+    end = as.Date(paste("01.",end,sep=""),"%d.%m.%Y")
+    month(end)  <- month(end) + 1
+    X <- seq(start,end,by=1)
+    X <- X[1:length(X)-1] # delete last row because it belongs to the other month
+    result = format(X, "%d.%m.%Y")
+
+  }
+  return(result)
+}
+
+
+
+
+
+
+#' @title getISINFromYahooTicker
+#'
+#' @description This function takes an vector of Yahoo Ticker characters and returns the added ISIN number.
+#'
+#' @param vector of character - Yahoo Ticker (e.g. ADS.DE)
+#'
+#' @return data.frame : yahooTicker , isin OF THE UNIQUE INPUT VECTOR !!
+#'
+#' @examples
+#'
+#'
+#' @export
+#'
+getISINFromYahooTicker  <- function(ytickers) {
+
+  tickers  <- unique(ytickers) # reduce amount of request at yahoo website
+  resList <- list()
+  idx <- 1
+  stock  <- c()
+  for(i in 1:length(tickers)) {
+    yticker  <- tickers[i]
+    URL  <- paste("https://de.finance.yahoo.com/q?s=",yticker,sep="")
+
+    w <- read_html(URL)
+
+    title  <- xml_find_all(w, ".//div[@class='title']")
+    name  <- xml_text(xml_children(title)[1])
+    nlist  <- strsplit(name, " ")[[1]]
+    name  <- as.character(paste(nlist[1:length(nlist)-1], collapse = ' ')) # skip last element -> "(ADS.DE)"
+
+    isin  <- xml_text(xml_children(title)[2])
+    isin  <- as.character(strsplit(isin, " ")[[1]][4])
+
+    stock  <- c(name=name, isin=isin, yahooTicker=yticker)
+
+    resList[[idx]]  <- stock
+    idx  <- idx+1
+  }
+  edf <- do.call("rbind", resList)
+  return(edf)
+}
+
+
+#' @title computePerformanceDF
+#'
+#' @description This method reads in a data frame with stocks(isin) and their OHLC data and then computes the respective daily performance. E.g. to be plotted in a chart.
+#'
+#' @param data.frame - with isin and OHLC data in a time period(s)
+#'
+#' @examples
+#'
+#'
+#' @return data.frame : performanceTable,
+#'
+computePerformanceDF  <- function(input_df){
+
+  input_df$perf  <- 0 # set new variable in data.frame
+  for(i in 2:nrow(input_df)) {
+    price_t <- input_df[i,6] #close
+    price_t1 <- input_df[i-1,6] #close in t-1
+
+    input_df[i,]$perf  <- round(((price_t - price_t1)/price_t1)*100,2)
+  }
+
+  return(input_df)
+}
+
+
+
+
+
+
+
+#'
+#' DEPRICATED
+#'
+#' This private method helps the @seealso getDailyOHLC function to read out the price table at ariva website.
 #' Therefore it gets a data.frame of a stock with the dates for the required prices and returns the prices data.frame.
 #'
 #'
 readHTMLPriceTable  <- function(df) {
 
-  # call internal private function to group the stocks on name and date(year/month) to reduce requests
+  if(getOption("logging")) loginfo("readHTMLPriceTable - Crawl the websites and build the OHLC data.frame")
+
+  # call internal private function to group the stocks on name and date(year/month) to reduce requests!
   groupedInputList <- groupInputData(df)
 
   #------------- HERE Loop-----------------
@@ -121,11 +445,14 @@ readHTMLPriceTable  <- function(df) {
   edf <- do.call("rbind", returnList)
   edf <- edf[c(1,9,2,3,4,5,6,7,8)]
   return(edf[order(edf$isin,edf$date),])
+
 }
 
 
 #'
-#' private function for getOHLC. Prepares the input data.frame of dates and corresponding isin.
+#' DEPRICATED
+#'
+#' private function for @seealso getDailyOHLC. Prepares the input data.frame of dates and corresponding isin.
 #' Groups the data to reduce the request on ariva.de
 #' Returns a list with the grouped data.frames.
 #' Grouping: by year then month and then stock/isin
@@ -171,6 +498,8 @@ groupInputData  <- function(dataFrame) {
 }
 
 #'
+#' DEPRICATED
+#'
 #' Internal private function formats the price data read from the html table into processable data types.
 #' Also format Date into a date class variable
 #' Returns a fuly formatted data.frame row from the values of the html table
@@ -202,146 +531,6 @@ formatOHLCTable  <- function(inputOHLCTable) {
 
   return(inputOHLCTable)
 }
-
-#' This private helping method gets the request for the dates or date intervals:
-#' 20.09.2014-22.09.2014 // 08.2014 // 2014 // 20.08.2014 // 2013-2014 // 08.2014-09.2014
-#' and builds an array with the daily dates to crawl through ariva
-#'
-#' Needs lubridate library
-#'
-getDateSequence  <- function(searchDate) {
-
-  library(lubridate)
-  result = c()
-  # The character to search for
-  dot <- "."
-  dash <- "-"
-  # Replace all occurrences by the empty string - note that gsub uses regular expressions, so escape p accordingly
-  s1 <- gsub(dot,"",searchDate,fixed = TRUE) # Count the length difference
-  s2 <- gsub(dash,"",searchDate) # Count the length difference
-  numDots <- as.numeric(nchar(searchDate) - nchar(s1)) # numOcc n
-  numDashes <- as.numeric(nchar(searchDate) - nchar(s2)) # numOcc n
-
-  if(numDots == 4 && numDashes == 1) {
-    # dd.mm.yyyy-dd.mm.yyyy
-    start = strsplit(searchDate,"-")[[1]][1]
-    end = strsplit(searchDate,"-")[[1]][2]
-    start = as.Date(start,"%d.%m.%Y")
-    end = as.Date(end,"%d.%m.%Y")
-    result = format(seq(start,end,by=1), "%d.%m.%Y")
-  }
-  else if(numDots == 1 && numDashes == 0) {
-    # mm.yyyy
-    start = as.Date(paste("01.",searchDate,sep=""),"%d.%m.%Y")
-    end = as.Date(paste("01.",searchDate,sep=""),"%d.%m.%Y")
-    month(end) = month(end) + 1
-    X <- seq(start,end,by=1)
-    X <- X[1:length(X)-1] # delete last row because it belongs to the other month
-    result = format(X, "%d.%m.%Y")
-  }
-  else if(numDots == 0 && numDashes == 0) {
-    # yyyy
-    start = as.Date(paste("01.01.",searchDate,sep=""),"%d.%m.%Y")
-    end = as.Date(paste("01.01.",searchDate,sep=""),"%d.%m.%Y")
-    year(end)  <- year(end) + 1
-    X <- seq(start,end,by=1)
-    X <- X[1:length(X)-1] # delete last row because it belongs to the other year
-    result = format(X, "%d.%m.%Y")
-  }
-  else if(numDots == 2 && numDashes == 0) {
-    # dd.mm.yyyy
-    result = searchDate
-
-  }
-  else if(numDots == 0 && numDashes == 1) {
-    # yyyy-yyyy
-    start = strsplit(searchDate,"-")[[1]][1]
-    end = strsplit(searchDate,"-")[[1]][2]
-    start = as.Date(paste("01.01.",start,sep=""),"%d.%m.%Y")
-    end = as.Date(paste("01.01.",end,sep=""),"%d.%m.%Y")
-    year(end)  <- year(end) + 1
-    X <- seq(start,end,by=1)
-    X <- X[1:length(X)-1] # delete last row because it belongs to the other year
-    result = format(X, "%d.%m.%Y")
-  }
-  else if(numDots == 2 && numDashes == 1) {
-    # mm.yyyy-mm.yyyy
-    start = strsplit(searchDate,"-")[[1]][1]
-    end = strsplit(searchDate,"-")[[1]][2]
-    start = as.Date(paste("01.",start,sep=""),"%d.%m.%Y")
-    end = as.Date(paste("01.",end,sep=""),"%d.%m.%Y")
-    month(end)  <- month(end) + 1
-    X <- seq(start,end,by=1)
-    X <- X[1:length(X)-1] # delete last row because it belongs to the other month
-    result = format(X, "%d.%m.%Y")
-
-  }
-  return(result)
-}
-
-
-#' @title getISINFromYahooTicker
-#'
-#' @description This function takes an vector of Yahoo Ticker characters and returns the added ISIN number.
-#'
-#' @param vector of character - Yahoo Ticker (e.g. ADS.DE)
-#'
-#' @return data.frame : yahooTicker , isin OF THE UNIQUE INPUT VECTOR !!
-#'
-#' @export
-#'
-getISINFromYahooTicker  <- function(ytickers) {
-
-  tickers  <- unique(ytickers) # reduce amount of request at yahoo website
-  resList <- list()
-  idx <- 1
-  stock  <- c()
-  for(i in 1:length(tickers)) {
-    yticker  <- tickers[i]
-    URL  <- paste("https://de.finance.yahoo.com/q?s=",yticker,sep="")
-
-    w <- read_html(URL)
-
-    title  <- xml_find_all(w, ".//div[@class='title']")
-    name  <- xml_text(xml_children(title)[1])
-    nlist  <- strsplit(name, " ")[[1]]
-    name  <- as.character(paste(nlist[1:length(nlist)-1], collapse = ' ')) # skip last element -> "(ADS.DE)"
-
-    isin  <- xml_text(xml_children(title)[2])
-    isin  <- as.character(strsplit(isin, " ")[[1]][4])
-
-    stock  <- c(name=name, isin=isin, yahooTicker=yticker)
-
-    resList[[idx]]  <- stock
-    idx  <- idx+1
-  }
-  edf <- do.call("rbind", resList)
-  return(edf)
-}
-
-
-#' @title computePerformanceDF
-#'
-#' @description This method reads in a data frame with stocks(isin) and their OHLC data and then computes the respective daily performance. E.g. to be plotted in a chart.
-#'
-#' @param data.frame - with isin and OHLC data in a time period(s)
-#' @return data.frame : performanceTable,
-#'
-computePerformanceDF  <- function(input_df){
-
-  input_df$perf  <- 0 # set new variable in data.frame
-  for(i in 2:nrow(input_df)) {
-    price_t <- input_df[i,6] #close
-    price_t1 <- input_df[i-1,6] #close in t-1
-
-    input_df[i,]$perf  <- round(((price_t - price_t1)/price_t1)*100,2)
-  }
-
-  return(input_df)
-}
-
-
-
 
 
 
