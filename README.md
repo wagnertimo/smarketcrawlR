@@ -9,7 +9,11 @@ Although Yahoo has (and maybe several other providers) an API to request financi
 ## TO COME
 
 Here is a list of features which will be added over time:
+- Get price information:
+    - Allow to choose stock market e.g. Xetra, Frankfurt etc.
+
 - Get stock information:
+    - listing main indices.
     - list stocks from stock indices --> Ask about e.g. DAX or NASDAQ and retrieve their current stocks
     - further stock information on ISIN with: Yahoo ticker, sector,, location etc. Also dividends, general meetings etc.
     - Build an internal text file with (own) standardized stock names for easier request, such that ISIN can be replaced with the stock name. Therefore crawl all possible stocks (ISIN, Yahoo ticker and name) and put in a txt file. Should be able to be updated.
