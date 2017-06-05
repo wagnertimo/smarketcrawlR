@@ -6,6 +6,23 @@
 This R package provides functions to crawl the stock market from the platform http://www.ariva.de.
 Although Yahoo has (and maybe several other providers) an API to request financial (stock) data, those platforms lack some information, especially in conjunction with german stock market data. After some reasearch I found that *ariva* provides the most information for all international stocks and its website structure allows *easy* crawling. This package will grow iteratively with additonal functionalities. Nevertheless, the methods are strictly depending on the website structure of ariva and the GET request structure of the csv file!
 
+## TO COME
+
+Here is a list of features which will be added over time:
+- Get stock information:
+    - list stocks from stock indices --> Ask about e.g. DAX or NASDAQ and retrieve their current stocks
+    - further stock information on ISIN with: Yahoo ticker, sector,, location etc. Also dividends, general meetings etc.
+    - Build an internal text file with (own) standardized stock names for easier request, such that ISIN can be replaced with the stock name. Therefore crawl all possible stocks (ISIN, Yahoo ticker and name) and put in a txt file. Should be able to be updated.
+    
+- Get fundamental data:
+    - Crawl also fundamental data like PE ratio or equity ratio etc.
+
+- Quick Plot functions:
+    - Provide pre-defined plots for price and fundamental data
+
+- Preprocess Price and Fundamental Data:
+   - Add functions to process the data. E.g. calculate returns
+
 ## Get Started
 
 ### Installing
