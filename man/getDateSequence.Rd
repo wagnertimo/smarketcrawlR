@@ -2,8 +2,8 @@
 % Please edit documentation in R/scrapeData.R
 \name{getDateSequence}
 \alias{getDateSequence}
-\title{This private helping method gets the request for the dates or date intervals:
-20.09.2014-22.09.2014 // 08.2014 // 2014 // 20.08.2014 // 2013-2014 // 08.2014-09.2014
+\title{This private helping method processes the request for the dates or date intervals:
+e.g 20.09.2014-22.09.2014 // 08.2014 // 2014 // 20.08.2014 // 2013-2014 // 08.2014-09.2014
 and builds an array with the daily dates to crawl through ariva}
 \usage{
 getDateSequence(searchDate)

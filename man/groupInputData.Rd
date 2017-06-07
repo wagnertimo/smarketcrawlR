@@ -2,15 +2,12 @@
 % Please edit documentation in R/scrapeData.R
 \name{groupInputData}
 \alias{groupInputData}
-\title{private function for getOHLC. Prepares the input data.frame of dates and corresponding isin.
-Groups the data to reduce the request on ariva.de
-Returns a list with the grouped data.frames.
-Grouping: by year then month and then stock/isin}
+\title{DEPRICATED}
 \usage{
 groupInputData(dataFrame)
 }
 \description{
-private function for getOHLC. Prepares the input data.frame of dates and corresponding isin.
+private function for @seealso getDailyOHLC. Prepares the input data.frame of dates and corresponding isin.
 Groups the data to reduce the request on ariva.de
 Returns a list with the grouped data.frames.
 Grouping: by year then month and then stock/isin

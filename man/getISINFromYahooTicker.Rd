@@ -15,3 +15,7 @@ data.frame : yahooTicker , isin OF THE UNIQUE INPUT VECTOR !!
 \description{
 This function takes an vector of Yahoo Ticker characters and returns the added ISIN number.
 }
+\examples{
+
+
+}

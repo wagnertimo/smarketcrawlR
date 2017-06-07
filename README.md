@@ -38,7 +38,7 @@ Before using this R package, please check that you have installed the following 
 * `getDailyOHLC(searchDates, isin, input_df)`: This function retrieves daily price data (Open, High, Low, Close, Volume, Turnover) from Xetra (Status Quo, will be extended in the future). The price data is cleaned by splits and subscription rights (dividends are priced!, further options to toggle them on/off will be extended in the future). There are different ways to retrieve the data or specify its input parameters:
     1. The first option is to simply declare a date string (date formats are dd.mm.YYYY) and a ISIN string to get the data of that stock on that date. The date can be a single date, a single month, a single year or date periods of days, months and years. So e.g. if you want price data from September 2014 till (including) November 2014, the date format is "09.2014-11.2014". The data for the whole year 2014 you get with "2014".
     2. The second option extends the first one by the possibility to define several date formats and stocks(ISINs) in an array. This is good if you need to compare different time periods for several stocks. All that data will be in one data.frame grouped by the stocks and sorted by the dates.
-    3. The third option specifies an input data.frame. The data.frame needs dates and isin as column names. The rows are individual dates with an isin (e.g. "22.09.2014" "DE0007037145"). For this option you need to name the `getDailyOHLCìnput_df = df)` parameter name.
+    3. The third option specifies an input data.frame. The data.frame needs dates and isin as column names. The rows are individual dates with an isin (e.g. "22.09.2014" "DE0007037145"). For this option you need to name the `getDailyOHLC(ìnput_df = df)` parameter name.
 
 
 ```r
@@ -102,11 +102,27 @@ head(prices)
 # 1 2008-02-25 66.8938 67.3948 65.7217 67.2245 136828  9198202 DE0007037145
 # 2 2008-02-27 67.1543 67.6252 66.7436 67.3146 122037  8214851 DE0007037145
 
-
-
-
 ```
 
+##### Process the financial data
 
+For further processing the financial data you can calculate the logarithmic returns in percent with the `addLogReturns` function. You can input a financial data.frame (e.g. be the `getDailyOHLC` method) and specify values (columns of your financial input data.frame, e.g. `Close` and/or `Volume`) to add log returns to you input data.
 
+```r
+# Get the financial data
+prices <- getDailyOHLC("09.2014-11.2014", "DE0007037145")
+
+# Calculate the log returns in percent
+log.returns <- addLogReturns(prices, c("Close", "Volume"))
+
+head(log.returns)
+# Output:
+#         Date   Open   High    Low  Close Volume Turnover         ISIN Close_LogReturn Volume_LogReturn
+# 1 2014-09-01 23.155 23.440 23.155 23.300  20685   481957 DE0007037145            0.00             0.00
+# 2 2014-09-02 23.270 23.850 23.265 23.480  50256  1183669 DE0007037145            0.77            88.77
+# 3 2014-09-03 23.655 24.140 23.525 23.975  53952  1290523 DE0007037145            2.09             7.10
+# 4 2014-09-04 24.000 24.435 23.680 24.330  67197  1622824 DE0007037145            1.47            21.95
+# 5 2014-09-05 24.290 24.775 24.285 24.775  68326  1682513 DE0007037145            1.81             1.67
+# 6 2014-09-08 24.680 24.775 24.580 24.695  52377  1291223 DE0007037145           -0.32           -26.58
+```
 

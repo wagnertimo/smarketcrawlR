@@ -2,12 +2,15 @@
 % Please edit documentation in R/scrapeData.R
 \name{formatOHLCTable}
 \alias{formatOHLCTable}
-\title{Internal private function formats the price data read from the html table into processable data types.
-Also format Date into a date class variable
-Returns a fuly formatted data.frame row from the values of the html table}
+\title{DEPRICATED}
 \usage{
 formatOHLCTable(inputOHLCTable)
 }
 \description{
+Internal private function formats the price data read from the html table into processable data types.
+Also format Date into a date class variable
+Returns a fuly formatted data.frame row from the values of the html table
+}
+\details{
 BUG: Cant format turnover
 }

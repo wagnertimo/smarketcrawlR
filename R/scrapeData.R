@@ -358,28 +358,44 @@ getISINFromYahooTicker  <- function(ytickers) {
 }
 
 
-#' @title computePerformanceDF
+#' @title addLogReturns
 #'
-#' @description This method reads in a data frame with stocks(isin) and their OHLC data and then computes the respective daily performance. E.g. to be plotted in a chart.
+#' @description This method computes the log-difference returns in % ( 100 x diff(log(x)) ) and adds it to the input data.frame as a seperate column.
+#' NOTE: First observation cannot have a return value. For computational reasons it has value 0.
 #'
-#' @param data.frame - with isin and OHLC data in a time period(s)
+#' @param df - a data.frame with financial data @seealso getDailyOHLC
+#' @param value - a single character value (e.g. "Close") or a character vector (e.g. c("Close", "Volume")) to define the value(s) on which to compute the return
+#'
+#' @return a data.frame with additional columns of the log returns in percent of the specified value(s)
 #'
 #' @examples
 #'
+#' # Get the financial data
+#' prices <- getDailyOHLC("09.2014-11.2014", "DE0007037145")
+#' # Calculate the log returns in percent
+#' log.returns <- addLogReturns(prices, c("Close", "Volume"))
 #'
-#' @return data.frame : performanceTable,
+#' @export
 #'
-computePerformanceDF  <- function(input_df){
+addLogReturns  <- function(df, value){
 
-  input_df$perf  <- 0 # set new variable in data.frame
-  for(i in 2:nrow(input_df)) {
-    price_t <- input_df[i,6] #close
-    price_t1 <- input_df[i-1,6] #close in t-1
+  prices2returns <- function(x) round(100*diff(log(x)),2)
+  # init an extra column otherwise cbind wont work
+  res <- data.frame(0)
 
-    input_df[i,]$perf  <- round(((price_t - price_t1)/price_t1)*100,2)
+  for(i in 1:length(value)){
+    v <- value[i]
+    # add 0 value for first observation. NA or NULL is not possible
+    res <- cbind(res, c(0,prices2returns(df[,v])))
   }
+  # delete the artificial extra column
+  res <- res[,2:ncol(res)]
+  # rename the column names
+  colnames(res) <- paste(value, "_LogReturn",sep="")
+  # add the returns to the input data.frame
+  df <- cbind(df,res)
 
-  return(input_df)
+  return(df)
 }
 
 

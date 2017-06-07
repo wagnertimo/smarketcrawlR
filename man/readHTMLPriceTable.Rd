@@ -2,12 +2,11 @@
 % Please edit documentation in R/scrapeData.R
 \name{readHTMLPriceTable}
 \alias{readHTMLPriceTable}
-\title{This private method helps the getOHLC function to read out the price table on ariva website.
-Therefore it gets a data.frame of a stock with the dates for the required prices and returns the prices data.frame.}
+\title{DEPRICATED}
 \usage{
 readHTMLPriceTable(df)
 }
 \description{
-This private method helps the getOHLC function to read out the price table on ariva website.
+This private method helps the @seealso getDailyOHLC function to read out the price table at ariva website.
 Therefore it gets a data.frame of a stock with the dates for the required prices and returns the prices data.frame.
 }
