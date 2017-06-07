@@ -127,7 +127,7 @@ head(prices)
 
 ##### Process the financial data
 
-For further processing the financial data you can calculate the logarithmic returns in percent with the `addLogReturns` function. You can input a financial data.frame (e.g. be the `getDailyOHLC` method) and specify values (columns of your financial input data.frame, e.g. `Close` and/or `Volume`) to add log returns to you input data.
+For further processing the financial data you can calculate the logarithmic returns in percent with the `addLogReturns` function. You can input a financial data.frame (e.g. be the `getDailyOHLC` method) and specify values (columns of your financial input data.frame, e.g. `Close` and/or `Volume`) to add log returns to you input data. The first observation cannot have any return value since it has no previous value. Due to computational reasons the first observation is set to `0`.
 
 ```r
 # Get the financial data
