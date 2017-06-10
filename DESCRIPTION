@@ -12,7 +12,8 @@ Imports:
     dplyr,
     ggplot2,
     stringr,
-    logging
+    logging,
+    tidyr
 Author: Timo Wagner
 Maintainer: Timo Wagner <wagnertimo@gmx.de>
 Description: More about what it does (maybe more than one line)
