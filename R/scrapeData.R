@@ -71,6 +71,8 @@ getDailyOHLC  <- function(searchDates, isin, input_df) {
   library(XML)
   library(stringr)
   library(logging)
+  library(dplyr)
+  library(httr)
 
   # Setup the logger and handlers
   basicConfig(level="DEBUG") # parameter level = x, with x = debug(10), info(20), warn(30), critical(40) // setLevel()
@@ -124,9 +126,6 @@ getDailyOHLC  <- function(searchDates, isin, input_df) {
 
 
 getPriceCSV <- function(df){
-
-  library(dplyr)
-  library(httr)
 
   df$dates <- as.Date(df$dates, "%d.%m.%Y")
   relDates <- unique(df$dates)
@@ -312,6 +311,88 @@ getDateSequence  <- function(searchDate) {
 
 
 
+
+#' @title getStockInfoFromIsin
+#'
+#' @description This method crawls through the ariva.de website and scrapes out information about the given stocks (isin).
+#' Status Quo: ticker info, sector.
+#'
+#' NOTE: Only the column/variable NominalValue is checked for NA values (== "-")
+#'
+#' The method strictly depends on the website structure of ariva!
+#'
+#' @param isin - vector of charachters with different stocks (isin), e.g. DE0007037145(RWE AG)
+#'
+#' @return data.frame with stock infos
+#'
+#' @examples
+#'
+#' # Build the input parameter
+#' isin <- c("DE0007037145", "DE000ENAG999")
+#'
+#' # Get the information about for RWE AG (DE0007037145)
+#' stockInfos <- getStockInfoFromIsin(isin = isin)
+#'
+#' @export
+#'
+getStockInfoFromIsin <- function(isin) {
+  ## libraries
+  library(XML)
+  library(stringr)
+  library(logging)
+  library(dplyr)
+  library(httr)
+  library(tidyr)
+
+
+  # Setup the logger and handlers
+  basicConfig(level="DEBUG") # parameter level = x, with x = debug(10), info(20), warn(30), critical(40) // setLevel()
+  #nameLogFile <- paste("getDailyOHLC", Sys.time(), ".txt", sep="")
+  #addHandler(writeToFile, file=nameLogFile, level='DEBUG')
+
+  res <- data.frame()
+
+  for(i in 1:length(isin)){
+
+    s <- isin[i]
+
+    if(getOption("logging")) loginfo(paste("getStockInfoFromIsin - Get information for ", s, sep = ""))
+
+    # Get the secu variable // http://www.ariva.de/rwe_vz-aktie/bilanz-guv
+
+    url <- paste("http://www.ariva.de/", s, "/bilanz-guv", sep = "")
+    htmlResponse <- htmlParse(content(GET(url, verbose()), "text"))
+    # [contains(@name,'secu')]/@value
+    mainData <- xpathSApply(htmlResponse, "//div[contains(@class,'stammdaten')]//td")
+    # get the values inside the td elements
+    t <- lapply(mainData, xmlValue)
+    t <- data.frame(matrix(unlist(t), nrow=10, byrow=T))
+    t <- spread(t, "X1", "X2")
+    t$ISIN <- s
+
+    res <- rbind(res, t)
+
+  }
+
+  # format result data.frame
+  colnames(res) <- c("StockType", "Business", "Genus", "ListedSince", "Established", "Country", "NominalValue", "Sector", "Ticker", "Currency", "ISIN")
+  res$Ticker <-  as.character(res$Ticker)
+  res$Country <-  as.character(res$Country)
+  res$Currency <-  as.character(res$Currency)
+  res$Business <-  as.character(res$Business)
+  res$StockType <-  as.character(res$StockType)
+  res$Established <-  as.character(res$Established)
+  res$Genus <-  as.character(res$Genus)
+  res$ListedSince <- as.Date(res$ListedSince, "%d.%m.%Y")
+  # delete all white spcaes and declare "-" as NA value
+  res$NominalValue <- gsub("[[:blank:]]", "", res$NominalValue)
+  res$NominalValue <- ifelse(res$NominalValue == "-", NA, res$NominalValue)
+
+  if(getOption("logging")) loginfo(paste("getStockInfoFromIsin -DONE", s, sep = ""))
+
+  return(res)
+
+}
 
 
 

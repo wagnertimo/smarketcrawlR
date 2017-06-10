@@ -147,3 +147,27 @@ head(log.returns)
 # 6 2014-09-08 24.680 24.775 24.580 24.695  52377  1291223 DE0007037145           -0.32           -26.58
 ```
 
+
+##### Get stock information
+
+The function `getStockInfoFromIsin()` crawls for general information about the given stocks (ISIN). You can therefore specify a vector of ISIN characters. The returned `data.frame` gives information about the stock type, business, genus, date since listed, the year of establishment, country of origin, the nominal value", sector", ticker", currency and ISIN.
+
+```r
+# Build the input parameter
+isin <- c("DE0007037145", "DE000ENAG999")
+
+# Get the information about for RWE AG (DE0007037145)
+stockInfos <- getStockInfoFromIsin(isin = isin)
+stockInfos
+
+# Output
+#
+#      StockType         Business             Genus ListedSince Established     Country NominalValue    Sector Ticker Currency
+# 1 Inlandsaktie Energieversorger      Vorzugsaktie  1922-12-01        1898 Deutschland         <NA> Versorger   RWE3      EUR
+# 2 Inlandsaktie Energieversorger Namens-Stammaktie  1965-08-09        2000 Deutschland         1,00 Versorger   EOAN      EUR
+#           ISIN
+# 1 DE0007037145
+# 2 DE000ENAG999
+```
+
+
