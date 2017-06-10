@@ -150,13 +150,13 @@ head(log.returns)
 
 ##### Get stock information
 
-The function `getStockInfoFromIsin()` crawls for general information about the given stocks (ISIN). You can therefore specify a vector of ISIN characters. The returned `data.frame` gives information about the stock type, business, genus, date since listed, the year of establishment, country of origin, the nominal value", sector", ticker", currency and ISIN.
+The function `getStockInfoFromIsin()` crawls for general information about the given stocks (ISIN). You can therefore specify a vector of ISIN characters. The returned `data.frame` gives information about the stock type, business, genus, date since listed, the year of establishment, country of origin, the nominal value, sector, ticker, currency and ISIN.
 
 ```r
 # Build the input parameter
 isin <- c("DE0007037145", "DE000ENAG999")
 
-# Get the information about for RWE AG (DE0007037145)
+# Get the information about for RWE AG (DE0007037145) and EON (DE000ENAG999)
 stockInfos <- getStockInfoFromIsin(isin = isin)
 stockInfos
 
