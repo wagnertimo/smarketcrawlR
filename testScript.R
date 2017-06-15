@@ -66,7 +66,42 @@ t
 
 
 
+#' --------------------------------------------------------------------------------------------------------
+#'
+#' Testing get stock indexes
+#'
 
+setLogging(TRUE)
+
+
+# Ultimate goal:
+#' List of indexes as info lists
+#'
+#' e.g.
+#'
+#'  [[1]]
+#       [1] (Name): "DAX"
+#       [2] (ISIN): "DE0008469008"
+#       [3] (Stocks):
+#             [1] (Names): "BMW", "Adidas", .....
+#             [2] (Links): "...", "...."
+
+t <- getStockMarketIndexList()
+
+
+
+r <- getStockMarketIndexInfoFromLink(t[1,]$Link)
+
+r
+
+
+remove(list = lsf.str())
+
+
+
+
+#'
+#' --------------------------------------------------------------------------------------------------------
 
 
 

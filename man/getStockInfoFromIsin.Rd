@@ -14,14 +14,16 @@ data.frame with stock infos
 }
 \description{
 This method crawls through the ariva.de website and scrapes out information about the given stocks (isin).
-Status Quo: ticker info, sector
+Status Quo: ticker info, sector.
+
+NOTE: Only the column/variable NominalValue is checked for NA values (== "-")
 
 The method strictly depends on the website structure of ariva!
 }
 \examples{
 
-#' # Build the input parameter
-isin <- c("DE0007037145")
+# Build the input parameter
+isin <- c("DE0007037145", "DE000ENAG999")
 
 # Get the information about for RWE AG (DE0007037145)
 stockInfos <- getStockInfoFromIsin(isin = isin)

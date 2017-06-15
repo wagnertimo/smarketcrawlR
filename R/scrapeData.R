@@ -396,6 +396,120 @@ getStockInfoFromIsin <- function(isin) {
 
 
 
+
+
+
+#' @title getStockMarketIndexList
+#'
+#' @description This method crawls through the ariva.de website and scrapes out the stock market indexes
+#'
+#' The method strictly depends on the website structure of ariva!
+#'
+#'
+#' @return data.frame with stock market indexes
+#'
+#' @examples
+#'
+#' # Get a list of stock market indexes from ariva.de
+#' indexList <- getStockMarketIndexList()
+#'
+#' @export
+#'
+getStockMarketIndexList <- function(isin) {
+  ## libraries
+  library(XML)
+  library(stringr)
+  library(logging)
+  library(dplyr)
+  library(httr)
+  library(tidyr)
+
+
+  # Setup the logger and handlers
+  basicConfig(level="DEBUG") # parameter level = x, with x = debug(10), info(20), warn(30), critical(40) // setLevel()
+  #nameLogFile <- paste("getDailyOHLC", Sys.time(), ".txt", sep="")
+  #addHandler(writeToFile, file=nameLogFile, level='DEBUG')
+
+  url <- paste("http://www.ariva.de/aktien/indizes", sep = "")
+  htmlResponse <- htmlParse(content(GET(url, verbose()), "text"))
+  # [contains(@name,'secu')]/@value
+  indexLinks <- xpathSApply(htmlResponse, "//div[contains(@id,'CONTENT')]//tbody/tr/td/a/@href")
+  indexNames <- xpathSApply(htmlResponse, "//div[contains(@id,'CONTENT')]//tbody/tr/td/a/text()", xmlValue)
+  #indexNames <- lapply(indexNames, xmlValue)
+
+  res <- data.frame(Name = indexNames, Link = paste("http://www.ariva.de", indexLinks, sep = ""))
+  res$Name <- as.character(res$Name)
+  res$Link<- as.character(res$Link)
+  # Those indexes do not work
+  res <- res[!(res$Name %in% c("VIX", "EGX 30 (Kairo)", "S&P/TSX 60", "ISE 30 (Istanbul)", "OMX Kopenhagen", "Mexican Bolsa")),]
+  # get isins and add it as new variable to result data.framw
+  c <- lapply(res$Link, function(x) getStockMarketIndexInfoFromLink(x))
+  c <- as.character(c)
+  res$ISIN <- c
+
+
+  return(res)
+
+}
+
+
+
+
+#' @title getStockMarketIndexInfoFromLink
+#'
+#' @description This method crawls through the ariva.de website and scrapes out the stock market index info given its link @seealso getStockMarketIndexList
+#'
+#' The method strictly depends on the website structure of ariva!
+#'
+#' @param url - link of the ariva website to adress the main page of the stock market index
+#'
+#' @return data.frame with stock market index info
+#'
+#' @examples
+#'
+#' link <-  "http://www.ariva.de/dax-30"
+#' # Get a list of stock market indexes from ariva.de
+#' daxInfo <- getStockMarketIndexInfoFromLink(link)
+#'
+#' @export
+#'
+getStockMarketIndexInfoFromLink <- function(url) {
+  ## libraries
+  library(XML)
+  library(stringr)
+  library(logging)
+  library(dplyr)
+  library(httr)
+  library(tidyr)
+
+
+  # Setup the logger and handlers
+  basicConfig(level="DEBUG") # parameter level = x, with x = debug(10), info(20), warn(30), critical(40) // setLevel()
+  #nameLogFile <- paste("getDailyOHLC", Sys.time(), ".txt", sep="")
+  #addHandler(writeToFile, file=nameLogFile, level='DEBUG')
+
+  htmlResponse <- htmlParse(content(GET(url, verbose()), "text"))
+  # [contains(@name,'secu')]/@value
+  isin <- xpathSApply(htmlResponse, "id('pageSnapshotHeader')/div[2]/div[3]/div[2]/text()", xmlValue)
+  isin <- strsplit(isin, "\\s+")[[1]][2]
+
+  return(isin)
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #' @title getISINFromYahooTicker
 #'
 #' @description This function takes an vector of Yahoo Ticker characters and returns the added ISIN number.

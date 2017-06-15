@@ -53,6 +53,30 @@ Before using this R package, please check that you have installed the following 
 
 ### Usage
 
+#### Get the stock index
+
+To start with this R package it is convenient to first use the `getStockMarketIndexList()` function. This returns a data.frame with all the stock indexes (or indices) from http://www.ariva.de/aktien/indizes. 
+
+Status Quo the function only returns the name of the stock index a link to its main page at ariva.de and its ISIN. Later on the goal is to also add its stocks. 
+
+At the end you will get a list of the most important stock indexes around the world with its current stocks (name and ISIN). From there on you can use the other functions like e.g. `getDailyOHLC()` since you now have a list of stocks with names and the needed ISIN unique identifier. There will also be a function to *convert* the stock (with its ISIN) into a **Yahoo ticker**. 
+
+```r
+
+stockIndex <- getStockMarketIndexList()
+head(stockIndex)
+
+# Output:
+#      Name                                     Link         ISIN
+# 1     DAX               http://www.ariva.de/dax-30 DE0008469008
+# 2 TecDAX                http://www.ariva.de/tecdax DE0007203275
+# 3   MDAX                  http://www.ariva.de/mdax DE0008467416
+# 4   SDAX                  http://www.ariva.de/sdax DE0009653386
+# 5   HDAX  http://www.ariva.de/hdax-index/kursliste DE0008469016
+# 6   CDAX  http://www.ariva.de/cdax-index/kursliste DE0008469602
+
+```
+
 #### Get the price data
 
 
